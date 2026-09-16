@@ -34,7 +34,7 @@ Vous pouvez déployer ce projet selon **deux topologies au choix** :
 
 ```
 ┌───────────────────────┐        ┌──────────────────────────┐
-│   Serveur IA (pve3)   │ ─────▶│  Serveur Jellyfin (pve) │
+│   Serveur IA (pve3)   │ ─────▶│  Serveur Jellyfin (pve)  │
 │   Recherche +         │ dépôt  │  Indexation + streaming  │
 │   téléchargement      │ fichier│                          │
 └───────────────────────┘        └──────────────────────────┘
