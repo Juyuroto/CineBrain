@@ -1,0 +1,115 @@
+services:
+  vpn:
+    container_name: jarvis_vpn
+    image: qmcgaw/gluetun:latest
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 8080:8080/tcp # Accès qBittorrent
+      - 9696:9696/tcp # Accès Prowlarr
+      - 11434:11434/tcp
+      - 8888:8888/tcp # HTTP proxy
+      - 8388:8388/tcp # Shadowsocks
+      - 8002:8002/tcp # API Backend
+    dns:
+      - 1.1.1.1
+    environment:
+      - VPN_SERVICE_PROVIDER=mullvad
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
+      - SERVER_CITIES=${SERVER_CITIES}
+      - TZ=Europe/Brussels
+      - FIREWALL_OUTBOUND_SUBNETS=192.168.20.0/24
+      - DOT=on
+      - BLOCK_MALICIOUS=off
+      - DNS_KEEP_NAMESERVER=on
+      - DNS_ADDRESS=1.1.1.1
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+  prowlarr:
+    container_name: jarvis_prowlarr
+    image: lscr.io/linuxserver/prowlarr:latest
+    restart: unless-stopped
+    network_mode: "service:vpn"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Brussels
+    volumes:
+      - ./config/prowlarr:/config
+    depends_on:
+      - vpn
+
+  torrent:
+    container_name: jarvis_torrent
+    image: lscr.io/linuxserver/qbittorrent:latest
+    restart: unless-stopped
+    network_mode: "service:vpn"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Brussels
+      - WEBUI_PORT=8080
+    volumes:
+      - ./config/temp_downloads:/downloads
+    depends_on:
+      - vpn
+
+  ollama:
+    container_name: jarvis_ollama
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    network_mode: "service:vpn"
+    volumes:
+      - ./config/ollama:/model_files
+      - ./config/ollama_data:/root/.ollama
+    entrypoint: ["/bin/sh", "/model_files/run_ollama.sh"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  backend:
+    container_name: jarvis_backend
+    image: fubooki/jarvis_tor:backend
+    restart: unless-stopped
+    network_mode: "service:vpn"
+    environment:
+      - OLLAMA_HOST=http://localhost:11434
+      - PROWLARR_HOST=http://localhost:9696
+      - PROWLARR_API_KEY=${PROWLARR_API_KEY}
+      - QBIT_HOST=${QBIT_HOST}
+      - QBIT_USER=${QBIT_USER}
+      - QBIT_PASS=${QBIT_PASS}
+      - DIR_DOWNLOADS=${DIR_DOWNLOADS}
+      - DIR_JELLYFIN=${DIR_JELLYFIN}
+      - JELLYFIN_HOST=${JELLYFIN_HOST}
+      - JELLYFIN_USER=${JELLYFIN_USER}
+      - TRANSFER_CHECK_INTERVAL=300
+    volumes:
+      - ./config/temp_downloads:/downloads
+      - ./config:/app/config
+      - ~/.ssh:/root/.ssh:ro
+    depends_on:
+      - vpn
+      - prowlarr
+      - torrent
+      - ollama
+
+  frontend:
+    container_name: jarvis_frontend
+    image: fubooki/jarvis_tor:frontend
+    ports:
+      - "${Frontend_Port}:${Frontend_Port}"
+    environment:
+      - Frontend_Port=${Frontend_Port}
+    volumes:
+      - ./config:/app/config
+    restart: unless-stopped
+    depends_on:
+      - backend
