@@ -18,8 +18,8 @@ L'objectif de **CineBrain** est d'éliminer la complexité liée au télécharge
 
 Le projet repose sur deux blocs indépendants, chacun sur son propre serveur :
 
-1. **Serveur média — Jellyfin** (pve, ce README) : héberge, indexe et diffuse la médiathèque.
-2. **Serveur IA & téléchargement** (pve3) : reçoit les demandes, effectue la recherche et le téléchargement, puis dépose les fichiers organisés dans le dossier surveillé par Jellyfin.
+1. **Serveur média — Jellyfin** : héberge, indexe et diffuse la médiathèque.
+2. **Serveur IA & téléchargement** : reçoit les demandes, effectue la recherche et le téléchargement, puis dépose les fichiers organisés dans le dossier surveillé par Jellyfin.
 
 ## Prérequis matériels
 
@@ -34,7 +34,7 @@ Vous pouvez déployer ce projet selon **deux topologies au choix** :
 
 ```
 ┌───────────────────────┐        ┌──────────────────────────┐
-│   Serveur IA (pve3)   │ ─────▶│  Serveur Jellyfin (pve)  │
+│   Serveur IA          │ ─────▶│  Serveur Jellyfin        │
 │   Recherche +         │ dépôt  │  Indexation + streaming  │
 │   téléchargement      │ fichier│                          │
 └───────────────────────┘        └──────────────────────────┘
@@ -181,4 +181,150 @@ La lib concerné s'affichera dans **libraries**, surtout ne JAMAIS mettre **Enab
 
 # Partie 2 — IA & Téléchargement
 
-*En cours..*
+Cette partie est hébergée sur la seconde machine (**Serveur IA**). Elle rassemble le moteur de traitement en langage naturel (Ollama), le tunnel sécurisé (Gluetun VPN), les indexeurs (Prowlarr), le client de téléchargement (qBittorrent) et le backend d'automatisation.
+
+---
+
+## 1. Structure du projet et des dossiers
+
+Sur le serveur IA, l'ensemble de la stack est centralisé sous `/opt/cinebrain-ia` :
+
+```text
+/opt/cinebrain-ia/
+├── config/
+│   └── Modelfile            # Configuration du modèle LLM local
+├── app/                     # Scripts du backend d'automatisation (transfer.py, etc.)
+├── downloads/               # Dossier temporaire de téléchargement des torrents
+├── .env                     # Variables d'environnement (clés API, identifiants VPN)
+└── docker-compose.yml       # Stack complète des conteneurs
+```
+
+## 2. Déploiement de la stack via Docker
+
+Créer l'arborescence et le fichier d'environnement :
+
+```bash
+mkdir -p /opt/cinebrain-ia/config /opt/cinebrain-ia/app /opt/cinebrain-ia/downloads
+cd /opt/cinebrain-ia
+nano .env
+```
+
+Contenu du fichier `.env`
+
+link
+
+Contenu du `docker-compose.yml`:
+
+link
+
+Démarrer la stack sur le serveur IA :
+
+```bash
+docker compose up -d
+```
+
+## 3. Fonctionnement du pipeline automatisé
+
+Le code va exécuté dans le backend l'orchestration des actions suivantes :
+
+```text
+[ Demande Utilisateur ]
+         │
+         ▼
+[ Ollama (Analyse IA) ] ──▶ Extraction du titre, année, langue
+         │
+         ▼
+[ Prowlarr / VPN ] ───────▶ Recherche sécurisée du meilleur Release
+         │
+         ▼
+[ qBittorrent ] ──────────▶ Téléchargement dans /downloads/User-X/
+         │
+         ▼
+[ Backend ] ─▶ Nettoyage des metadatas & normalisation du nom
+         │
+         ▼
+[ Transfert SCP ] ────────▶ Copie sécurisée vers Serveur Jellyfin (/mnt/contenu/...)
+```
+
+Logique de nettoyage et de transfert sécurisé
+
+Le script applique des règles strictes lors de la livraison :
+- Détection de type : Identification automatique des séries (S01E01, Saison 1) et des films.
+- Nettoyage des tags : Suppression des éléments superflus (1080p, WEB-DL, x264, noms de sites web) sans détruire l'extension du fichier ni l'année ((1997)).
+- Gestion des extras : Si un film contient des bonus (Featurettes, Storyboards), les fichiers conservent leurs noms individuels pour éviter d'être écrasés.
+- Livraison distante : Création automatique du dossier cible via SSH puis transfert direct avec scp
+
+## 4. Configuration Prowlarr
+
+### Connexion et settings
+
+Accéder à Prowlarr via http://IP_SERVEUR_IA:9696 pour configurer la recherche automatisée :
+
+1. Lorsqu'on arrive sur l'interface de Prowlarr, on va créer l'utilisateur commun.
+
+![Création du user](./pictures/10.auth-prowlarr.png)
+
+2. Une fois connecté, on se rendre dans **settings** -> **General** pour copier la clé api
+
+![Création du user](./pictures/11.api-key.png)
+
+### Ajouter des indexers de recherche
+
+1. Dans **Settings** → **Indexers**, ajouter les catégories de recherche (Films & Séries).
+
+![Création du user](./pictures/12.add-indexers.png)
+
+2. Dans **Indexers** → **Add Indexer**, ajouter vos trackers habituels :
+  - Différent Indexers testé: The Pirate Bay, LimeTorrents, EZTV et Torrent9.
+
+![Gestion des utilisateurs](./pictures/13.add.website.png)
+
+## 5. Configuration qBittorrent
+
+### Connexion
+
+Accéder à qBittorrent via http://IP_SERVEUR_IA:8080 :
+
+Pour trouver le mot de passe de l'interface, il va falloir faire la commande suivant:
+
+```bash
+docker compose logs qbittorrent
+```
+
+Résultat attendu:
+
+```bash
+******** Information ********
+To control qBittorrent, access the WebUI at: http://localhost:8080
+The WebUI administrator username is: admin
+The WebUI administrator password was not set. A temporary password is provided for this session: gznZVC6tb
+You should set your own password in program preferences.
+Connection to localhost (::1) 8080 port [tcp/http-alt] succeeded!
+[ls.io-init] done.
+```
+
+Prendre le mot de passe généré temprairement.
+
+![Création du user](./pictures/14.auth-qbit.png)
+
+2. Une fois connecté, on va se rendre dans **settings** -> **WebUI** pour modifier le **mot de passe** avec celui dans votre `.env`, cocher **Bypass authentification for client on localhost** et cliquer sur **save**
+
+![Création du user](./pictures/15.setting-qbit.png)
+
+## 6. Ajouter et profiter de vos médias
+
+### L'interface WebUI de CineBrain
+
+Accédez à la page web de votre outil via http://IP_SERVEUR_IA:3000 pour lancer vos recherches :
+
+![Création du user](./pictures/16.web-ui.png)
+
+Il suffit de formuler votre demande et de cliquer sur **Ajouter**.
+
+![Création du user](./pictures/17.load-movie.png)
+
+Cliquez sur le bouton de la moulinette pour laissez ensuite l'intelligence artificielle rechercher et télécharger le film de manière 100% autonome.
+
+## C'est prêt !
+
+Vous n'avez plus rien à faire. Une fois le téléchargement et le nettoyage terminés, le fichier apparaîtra automatiquement et proprement dans l'interface de votre serveur Jellyfin. Profitez de votre séance !
