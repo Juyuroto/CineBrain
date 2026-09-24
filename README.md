@@ -68,13 +68,6 @@ Jellyfin s'appuie sur une arborescence stricte pour bien reconnaître séries et
     ├── Movie-1/
     └── Movie-2/
 ```
-## Pourquoi ce projet ?
-
-L'objectif de **CineBrain** est d'éliminer la complexité liée au téléchargement et à la gestion manuelle des films et séries :
-
-- **Recherche en langage naturel** : Plus besoin de chercher manuellement sur plusieurs sites de torrents, de vérifier la qualité ou la langue.
-- **Automatisation totale** : De la demande initiale de l'utilisateur jusqu'à la mise à disposition finale dans la médiathèque Jellyfin, tout le pipeline (recherche, téléchargement sous VPN, organisation des dossiers, transfert sécurisé) est géré automatiquement.
-- **Confort de visionnage** : Une fois le média prêt, il apparaît directement dans Jellyfin, prêt à être regardé sur votre TV, PC ou smartphone.
 
 ## 1. Préparation de la machine Debian
 
