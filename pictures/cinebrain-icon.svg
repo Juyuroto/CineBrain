@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title">
+  <title id="title">CineBrain</title>
+  <defs>
+    <!-- Dégradé du titre « CineBrain » : accent-sky vers accent-blue -->
+    <linearGradient id="accent" x1="96" y1="98" x2="416" y2="410" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fond : bg-main -->
+  <rect width="512" height="512" rx="112" fill="#0f172a"/>
+
+  <!-- Cerveau -->
+  <path d="M256 98
+    C262 98 268 100 276 108 C298 92 332 100 344 124 C376 124 402 150 400 184
+    C428 196 436 236 416 262 C432 286 424 322 396 336 C396 370 362 392 328 384
+    C316 404 286 412 256 400
+    C226 412 196 404 184 384 C150 392 116 370 116 336 C88 322 80 286 96 262
+    C76 236 84 196 112 184 C110 150 136 124 168 124 C180 100 214 92 236 108
+    C244 100 250 98 256 98 Z"
+    fill="none" stroke="url(#accent)" stroke-width="22" stroke-linejoin="round"/>
+
+  <!-- Séparation des hémisphères -->
+  <g stroke="url(#accent)" stroke-width="18" stroke-linecap="round">
+    <line x1="256" y1="112" x2="256" y2="168"/>
+    <line x1="256" y1="332" x2="256" y2="388"/>
+  </g>
+
+  <!-- Bouton lecture -->
+  <path d="M226 198 L310 250 L226 302 Z" fill="url(#accent)" stroke="url(#accent)" stroke-width="18" stroke-linejoin="round"/>
+</svg>

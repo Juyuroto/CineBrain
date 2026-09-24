@@ -1,4 +1,8 @@
-# CineBrain
+<h1 align="center">CineBrain</h1>
+
+<p align="center">
+  <img src="./pictures/cinebrain-icon.svg" width="140" alt="Logo CineBrain">
+</p>
 
 **CineBrain** est un écosystème qui combine Jellyfin et un pipeline de recherche/téléchargement automatisé pour organiser et visionner sa médiathèque personnelle.
 
@@ -317,13 +321,33 @@ Prendre le mot de passe généré temprairement.
 
 Accédez à la page web de votre outil via http://IP_SERVEUR_IA:3000 pour lancer vos recherches :
 
-![Création du user](./pictures/16.web-ui.png)
+![Interface WebUI de CineBrain](./pictures/16.web-ui.png)
+
+En haut à droite, le voyant indique l'état du VPN : **vert (Actif)** quand le tunnel est connecté, **rouge (Inactif)** s'il est coupé. En survolant le voyant, vous voyez l'IP publique et le pays du VPN.
 
 Il suffit de formuler votre demande et de cliquer sur **Ajouter**.
 
-![Création du user](./pictures/17.load-movie.png)
+![Ajout d'un film à la wishlist](./pictures/17.load-movie.png)
 
-Cliquez sur le bouton de la moulinette pour laissez ensuite l'intelligence artificielle rechercher et télécharger le film de manière 100% autonome.
+Cliquez sur **Lancer la recherche** pour laisser ensuite l'intelligence artificielle rechercher et télécharger le film de manière 100% autonome.
+
+### Suivi des téléchargements
+
+L'onglet **Téléchargements** affiche en temps réel les torrents en cours dans qBittorrent : progression, taille, vitesse et temps restant. Vous pouvez filtrer par état (en cours, terminés, erreurs).
+
+![Suivi des téléchargements](./pictures/18.downloads.png)
+
+### Éditeur JSON
+
+L'onglet **Éditeur JSON** permet de modifier directement le fichier `wishlist.json`. Le JSON est validé à la volée, et vous pouvez enregistrer avec **Ctrl+S**.
+
+![Éditeur JSON de la wishlist](./pictures/19.json-editor.png)
+
+### Logs du backend
+
+Le bouton **Logs** ouvre les logs du backend en direct. Vous pouvez les filtrer par niveau (Info, Avertissements, Erreurs) pour suivre chaque étape : recherche, ajout dans qBittorrent, transfert vers Jellyfin.
+
+![Logs du backend](./pictures/20.logs.png)
 
 ## C'est prêt !
 
