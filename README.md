@@ -6,14 +6,17 @@
 
 **CineBrain** est un écosystème qui combine Jellyfin et un pipeline de recherche/téléchargement automatisé pour organiser et visionner sa médiathèque personnelle.
 
+> [!IMPORTANT]
+> **Usage légal uniquement.** CineBrain est un outil d'automatisation : il ne fournit aucun contenu. Utilisez-le uniquement pour des œuvres que vous avez le droit de télécharger : films du domaine public, œuvres sous licence libre (Creative Commons…), contenus dont vous détenez les droits ou dont l'ayant droit autorise la diffusion. Configurez uniquement des sources légales, et respectez le droit d'auteur en vigueur dans votre pays. Vous êtes seul responsable de l'usage que vous en faites.
+
 ---
 
 ## Pourquoi ce projet ?
 
-L'objectif de **CineBrain** est d'éliminer la complexité liée au téléchargement et à la gestion manuelle des films et séries :
+L'objectif de **CineBrain** est d'éliminer la complexité liée à la récupération et à la gestion manuelle de films et séries libres de droits :
 
-- **Recherche en langage naturel** : Plus besoin de chercher manuellement sur plusieurs sites de torrents, de vérifier la qualité ou la langue.
-- **Automatisation totale** : De la demande initiale de l'utilisateur jusqu'à la mise à disposition finale dans la médiathèque Jellyfin, tout le pipeline (recherche, téléchargement sous VPN, organisation des dossiers, transfert sécurisé) est géré automatiquement.
+- **Recherche en langage naturel** : Plus besoin de chercher manuellement dans plusieurs catalogues légaux (domaine public, licences libres), de vérifier la qualité ou la langue.
+- **Automatisation totale** : De la demande initiale de l'utilisateur jusqu'à la mise à disposition finale dans la médiathèque Jellyfin, tout le pipeline (recherche, téléchargement via un tunnel VPN pour protéger la vie privée, organisation des dossiers, transfert sécurisé) est géré automatiquement.
 - **Confort de visionnage** : Une fois le média prêt, il apparaît directement dans Jellyfin, prêt à être regardé sur votre TV, PC ou smartphone.
 
 ---
@@ -70,10 +73,10 @@ Jellyfin s'appuie sur une arborescence stricte pour bien reconnaître séries et
 ```
 ## Pourquoi ce projet ?
 
-L'objectif de **CineBrain** est d'éliminer la complexité liée au téléchargement et à la gestion manuelle des films et séries :
+L'objectif de **CineBrain** est d'éliminer la complexité liée à la récupération et à la gestion manuelle de films et séries libres de droits :
 
-- **Recherche en langage naturel** : Plus besoin de chercher manuellement sur plusieurs sites de torrents, de vérifier la qualité ou la langue.
-- **Automatisation totale** : De la demande initiale de l'utilisateur jusqu'à la mise à disposition finale dans la médiathèque Jellyfin, tout le pipeline (recherche, téléchargement sous VPN, organisation des dossiers, transfert sécurisé) est géré automatiquement.
+- **Recherche en langage naturel** : Plus besoin de chercher manuellement dans plusieurs catalogues légaux (domaine public, licences libres), de vérifier la qualité ou la langue.
+- **Automatisation totale** : De la demande initiale de l'utilisateur jusqu'à la mise à disposition finale dans la médiathèque Jellyfin, tout le pipeline (recherche, téléchargement via un tunnel VPN pour protéger la vie privée, organisation des dossiers, transfert sécurisé) est géré automatiquement.
 - **Confort de visionnage** : Une fois le média prêt, il apparaît directement dans Jellyfin, prêt à être regardé sur votre TV, PC ou smartphone.
 
 ## 1. Préparation de la machine Debian
@@ -238,7 +241,7 @@ Le code va exécuté dans le backend l'orchestration des actions suivantes :
 [ Ollama (Analyse IA) ] ──▶ Extraction du titre, année, langue
          │
          ▼
-[ Prowlarr / VPN ] ───────▶ Recherche sécurisée du meilleur Release
+[ Prowlarr / VPN ] ───────▶ Recherche du meilleur fichier dans les sources légales configurées
          │
          ▼
 [ qBittorrent ] ──────────▶ Téléchargement dans /downloads/User-X/
@@ -278,10 +281,11 @@ Accéder à Prowlarr via http://IP_SERVEUR_IA:9696 pour configurer la recherche 
 
 ![Création du user](./pictures/12.add-indexers.png)
 
-2. Dans **Indexers** → **Add Indexer**, ajouter vos trackers habituels :
-  - Différent Indexers testé: The Pirate Bay, LimeTorrents, EZTV et Torrent9.
+2. Dans **Indexers** → **Add Indexer**, ajouter **uniquement des sources légales** :
+  - Par exemple **Internet Archive**, qui propose des films du domaine public et des œuvres sous licence libre.
+  - N'ajoutez jamais d'indexeur qui diffuse des œuvres protégées sans l'autorisation des ayants droit.
 
-![Gestion des utilisateurs](./pictures/13.add.website.png)
+![Ajout d'un indexer](./pictures/13.add.website.png)
 
 ## 5. Configuration qBittorrent
 
@@ -319,35 +323,35 @@ Prendre le mot de passe généré temprairement.
 
 ### L'interface WebUI de CineBrain
 
-Accédez à la page web de votre outil via http://IP_SERVEUR_IA:3000 pour lancer vos recherches :
+Accédez à la page web de votre outil via http://IP_SERVEUR_IA:3000 pour lancer vos recherches. L'interface reprend le style de Jellyfin : le menu à gauche donne accès à **Ma liste**, **Téléchargements**, **Éditeur JSON** et **Logs**.
 
 ![Interface WebUI de CineBrain](./pictures/16.web-ui.png)
 
-En haut à droite, le voyant indique l'état du VPN : **vert (Actif)** quand le tunnel est connecté, **rouge (Inactif)** s'il est coupé. En survolant le voyant, vous voyez l'IP publique et le pays du VPN.
+En haut à droite, l'icône du VPN porte une pastille d'état : **verte** quand le tunnel est connecté, **rouge** (clignotante) s'il est coupé. En survolant l'icône, vous voyez l'IP publique et le pays du VPN.
 
-Il suffit de formuler votre demande et de cliquer sur **Ajouter**.
+Cliquez sur **Ajouter**, renseignez le type de contenu, le titre, l'année (facultative), la langue et l'utilisateur, puis validez avec **Ajouter**.
 
-![Ajout d'un film à la wishlist](./pictures/17.load-movie.png)
+![Ajout d'un film à la liste](./pictures/17.add-movie.png)
 
-Cliquez sur **Lancer la recherche** pour laisser ensuite l'intelligence artificielle rechercher et télécharger le film de manière 100% autonome.
+Le titre apparaît alors dans **Ma liste**. Les onglets **Tous / Films / Séries** et la barre de recherche permettent de filtrer la liste. Pour retirer un élément, survolez son affiche et cliquez sur l'icône de corbeille.
+
+![Film ajouté à la liste](./pictures/18.wishlist.png)
+
+Cliquez sur **Lancer la recherche** pour laisser ensuite l'intelligence artificielle rechercher le film dans vos sources légales et le télécharger de manière 100% autonome.
 
 ### Suivi des téléchargements
 
-L'onglet **Téléchargements** affiche en temps réel les torrents en cours dans qBittorrent : progression, taille, vitesse et temps restant. Vous pouvez filtrer par état (en cours, terminés, erreurs).
+La page **Téléchargements** affiche en temps réel les torrents en cours dans qBittorrent : progression, taille, vitesse et temps restant. Un résumé indique le nombre de téléchargements en cours, terminés et en erreur, ainsi que la vitesse totale. Vous pouvez filtrer par état (en cours, terminés, erreurs).
 
-![Suivi des téléchargements](./pictures/18.downloads.png)
+![Suivi des téléchargements](./pictures/19.downloads.png)
 
 ### Éditeur JSON
 
-L'onglet **Éditeur JSON** permet de modifier directement le fichier `wishlist.json`. Le JSON est validé à la volée, et vous pouvez enregistrer avec **Ctrl+S**.
-
-![Éditeur JSON de la wishlist](./pictures/19.json-editor.png)
+La page **Éditeur JSON** permet de modifier directement le fichier `wishlist.json`. Le JSON est validé à la volée, et vous pouvez enregistrer avec **Ctrl+S**.
 
 ### Logs du backend
 
-Le bouton **Logs** ouvre les logs du backend en direct. Vous pouvez les filtrer par niveau (Info, Avertissements, Erreurs) pour suivre chaque étape : recherche, ajout dans qBittorrent, transfert vers Jellyfin.
-
-![Logs du backend](./pictures/20.logs.png)
+L'entrée **Logs** du menu ouvre les logs du backend en direct. Vous pouvez les filtrer par niveau (Info, Avertissements, Erreurs) pour suivre chaque étape : recherche, ajout dans qBittorrent, transfert vers Jellyfin.
 
 ## C'est prêt !
 

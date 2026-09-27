@@ -106,11 +106,7 @@ services:
     container_name: jarvis_frontend
     image: fubooki/jarvis_tor:frontend
     ports:
-      - "${Frontend_Port}:${Frontend_Port}"
-    environment:
-      - Frontend_Port=${Frontend_Port}
-    volumes:
-      - ./config:/app/config
+      - "${Frontend_Port}:3000" # nginx écoute sur 3000 dans le conteneur
     restart: unless-stopped
     depends_on:
       - backend
