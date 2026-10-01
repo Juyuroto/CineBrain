@@ -4,13 +4,10 @@ services:
     image: qmcgaw/gluetun:latest
     cap_add:
       - NET_ADMIN
+    # Ollama (11434) et l'API du backend (8002) restent internes : l'interface web y accède via le réseau Docker
     ports:
       - 8080:8080/tcp # Accès qBittorrent
       - 9696:9696/tcp # Accès Prowlarr
-      - 11434:11434/tcp
-      - 8888:8888/tcp # HTTP proxy
-      - 8388:8388/tcp # Shadowsocks
-      - 8002:8002/tcp # API Backend
     dns:
       - 1.1.1.1
     environment:
@@ -19,8 +16,8 @@ services:
       - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
       - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
       - SERVER_CITIES=${SERVER_CITIES}
-      - TZ=Europe/Brussels
-      - FIREWALL_OUTBOUND_SUBNETS=192.168.20.0/24
+      - TZ=${TZ:-Europe/Brussels}
+      - FIREWALL_OUTBOUND_SUBNETS=${LAN_SUBNET} # Réseau local autorisé hors VPN (accès SSH au serveur Jellyfin)
       - DOT=on
       - BLOCK_MALICIOUS=off
       - DNS_KEEP_NAMESERVER=on
@@ -37,7 +34,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/Brussels
+      - TZ=${TZ:-Europe/Brussels}
     volumes:
       - ./config/prowlarr:/config
     depends_on:
@@ -45,28 +42,31 @@ services:
 
   torrent:
     container_name: jarvis_torrent
-    image: lscr.io/linuxserver/qbittorrent:latest
+    image: fubooki/jarvis_tor:qbittorrent
     restart: unless-stopped
     network_mode: "service:vpn"
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/Brussels
+      - TZ=${TZ:-Europe/Brussels}
       - WEBUI_PORT=8080
+      - QBIT_USER=${QBIT_USER}
+      - QBIT_PASS=${QBIT_PASS}
     volumes:
+      - ./config/qbittorrent:/config
       - ./config/temp_downloads:/downloads
     depends_on:
       - vpn
 
   ollama:
     container_name: jarvis_ollama
-    image: ollama/ollama:latest
+    image: fubooki/jarvis_tor:ollama
     restart: unless-stopped
     network_mode: "service:vpn"
     volumes:
-      - ./config/ollama:/model_files
       - ./config/ollama_data:/root/.ollama
-    entrypoint: ["/bin/sh", "/model_files/run_ollama.sh"]
+    environment:
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1}
     deploy:
       resources:
         reservations:
@@ -82,6 +82,7 @@ services:
     network_mode: "service:vpn"
     environment:
       - OLLAMA_HOST=http://localhost:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1}
       - PROWLARR_HOST=http://localhost:9696
       - PROWLARR_API_KEY=${PROWLARR_API_KEY}
       - QBIT_HOST=${QBIT_HOST}

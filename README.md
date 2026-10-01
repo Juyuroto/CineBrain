@@ -71,14 +71,6 @@ Jellyfin s'appuie sur une arborescence stricte pour bien reconnaître séries et
     ├── Movie-1/
     └── Movie-2/
 ```
-## Pourquoi ce projet ?
-
-L'objectif de **CineBrain** est d'éliminer la complexité liée à la récupération et à la gestion manuelle de films et séries libres de droits :
-
-- **Recherche en langage naturel** : Plus besoin de chercher manuellement dans plusieurs catalogues légaux (domaine public, licences libres), de vérifier la qualité ou la langue.
-- **Automatisation totale** : De la demande initiale de l'utilisateur jusqu'à la mise à disposition finale dans la médiathèque Jellyfin, tout le pipeline (recherche, téléchargement via un tunnel VPN pour protéger la vie privée, organisation des dossiers, transfert sécurisé) est géré automatiquement.
-- **Confort de visionnage** : Une fois le média prêt, il apparaît directement dans Jellyfin, prêt à être regardé sur votre TV, PC ou smartphone.
-
 ## 1. Préparation de la machine Debian
 
 Config utilisée pour cette machine Debian :
@@ -92,10 +84,10 @@ Config utilisée pour cette machine Debian :
 
 ## 2. Montage du stockage média
 
-Le dossier `/mnt/films` (monté dans le conteneur sur `/data/movies`) doit provenir du stockage dédié (disque secondaire ou partage NFS/TrueNAS), pas du disque système de la machine Linux.
+Le dossier `/mnt/contenu` (monté dans le conteneur sur `/data/movies`) doit provenir du stockage dédié (disque secondaire ou partage NFS/TrueNAS), pas du disque système de la machine Linux.
 
 ```bash
-sudo mkdir -p /mnt/films
+sudo mkdir -p /mnt/contenu
 ```
 
 ## 3. Installation de Jellyfin via Docker
@@ -115,7 +107,7 @@ services:
     volumes:
       - /opt/jellyfin/config:/config
       - /opt/jellyfin/cache:/cache
-      - /mnt/films:/data/movies
+      - /mnt/contenu:/data/movies
     restart: unless-stopped
 ```
 
@@ -141,20 +133,20 @@ Accès via `http://IP_DE_LA_MACHINE:8096`. L'assistant demande :
 
 ## 5. Login + Config
 
-Pour commencer la config huration il va falloir commencer par se log avec **root** qu'on a créé.
+Pour commencer la configuration, se connecter avec le compte **root** créé précédemment.
 
 En haut à droite, cliquer sur l'icon du profile puis cliquer sur **Dashboard**
 
 ![Ajout d'une bibliothèque](./pictures/5.dashboard.png)
 
 
-## 5. Configuration des bibliothèques
+## 6. Configuration des bibliothèques
 
 Pour chaque dossier ajouté, choisir le bon type de contenu (Séries / Films) afin que Jellyfin applique le bon système de reconnaissance (affiches, résumés, épisodes).
 
 ![Ajout d'une bibliothèque](./pictures/6.add-library.png)
 
-## 6. Ajout d'une bibliothèque
+## 7. Ajout d'une bibliothèque
 
 Nous allons créer une bibliothèque dédiée pour chaque utilisateur.
 
@@ -170,7 +162,7 @@ mkdir -p /mnt/contenu/user_1
 |---|---|
 | ![Choix de la langue](./pictures/7.lib-user_1.png) | ![Création du compte admin](./pictures/8.folder-user_1.png) |
 
-## 7. Création des comptes utilisateurs
+## 8. Création des comptes utilisateurs
 
 Un compte par utilisateur (`User-1`, `User-2`...) dans **Tableau de bord → Utilisateurs**, avec accès restreint à ses propres dossiers si besoin de séparation.
 
@@ -178,7 +170,7 @@ Un compte par utilisateur (`User-1`, `User-2`...) dans **Tableau de bord → Uti
 
 La lib concerné s'affichera dans **libraries**, surtout ne JAMAIS mettre **Enable access all libraries**
 
-## 8. Vérification finale
+## 9. Vérification finale
 
 - Lecture d'un fichier test depuis un navigateur
 - Lecture depuis l'app mobile/TV Jellyfin
@@ -192,41 +184,85 @@ Cette partie est hébergée sur la seconde machine (**Serveur IA**). Elle rassem
 
 ---
 
-## 1. Structure du projet et des dossiers
+## 1. Prérequis
 
-Sur le serveur IA, l'ensemble de la stack est centralisé sous `/opt/cinebrain-ia` :
+- **Docker** et **Docker Compose**
+- **Une carte graphique NVIDIA** avec le [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installé (utilisée par Ollama)
+- **Un compte VPN Mullvad** (clé WireGuard)
+- **Un accès SSH par clé** vers le serveur Jellyfin, pour le transfert automatique des fichiers :
+
+```bash
+# Sur le serveur IA
+ssh-keygen -t ed25519 -C "cinebrain"
+ssh-copy-id -i ~/.ssh/id_ed25519.pub UTILISATEUR@IP_SERVEUR_JELLYFIN
+```
+
+## 2. Installation
+
+Tout le code (backend, interface web, scripts de démarrage d'Ollama et de qBittorrent) est déjà inclus dans les images Docker : vous n'avez besoin que de **deux fichiers** et d'un dossier `config/`.
 
 ```text
 /opt/cinebrain-ia/
-├── config/
-│   └── Modelfile            # Configuration du modèle LLM local
-├── app/                     # Scripts du backend d'automatisation (transfer.py, etc.)
-├── downloads/               # Dossier temporaire de téléchargement des torrents
-├── .env                     # Variables d'environnement (clés API, identifiants VPN)
-└── docker-compose.yml       # Stack complète des conteneurs
+├── docker-compose.yml       # Stack complète des conteneurs
+├── .env                     # Vos réglages (VPN, identifiants, serveur Jellyfin)
+└── config/
+    └── temp_downloads/
+        ├── User-1/          # Un dossier par utilisateur
+        └── User-2/
 ```
 
-## 2. Déploiement de la stack via Docker
+Les autres éléments de `config/` (`wishlist.json`, `ollama_data/`, `qbittorrent/`, `prowlarr/`) sont créés automatiquement au premier démarrage.
 
-Créer l'arborescence et le fichier d'environnement :
+### Récupérer les fichiers
 
 ```bash
-mkdir -p /opt/cinebrain-ia/config /opt/cinebrain-ia/app /opt/cinebrain-ia/downloads
-cd /opt/cinebrain-ia
+mkdir -p /opt/cinebrain-ia && cd /opt/cinebrain-ia
+curl -O https://raw.githubusercontent.com/Juyuroto/CineBrain/main/IA/docker-compose.yml
+curl -o .env https://raw.githubusercontent.com/Juyuroto/CineBrain/main/IA/.env.example
+```
+
+### Créer les dossiers utilisateurs
+
+Chaque dossier de `config/temp_downloads/` devient un utilisateur sélectionnable dans l'interface. Les médias de cet utilisateur sont ensuite déposés dans `DIR_JELLYFIN/<utilisateur>/` sur le serveur Jellyfin : utilisez donc les mêmes noms que les dossiers créés dans la Partie 1.
+
+```bash
+mkdir -p config/temp_downloads/User-1 config/temp_downloads/User-2
+```
+
+### Remplir le `.env`
+
+```bash
 nano .env
 ```
 
-Contenu du fichier `.env`
+| Variable | Rôle |
+| --- | --- |
+| `WIREGUARD_PRIVATE_KEY`, `WIREGUARD_ADDRESSES`, `SERVER_CITIES` | Connexion au VPN Mullvad (fichier de configuration WireGuard fourni par Mullvad) |
+| `LAN_SUBNET` | Votre réseau local (ex. `192.168.1.0/24`) : le VPN bloque tout le reste, ce réglage permet au backend de joindre le serveur Jellyfin |
+| `TZ` | Fuseau horaire des conteneurs (`Europe/Brussels` par défaut) |
+| `Frontend_Port` | Port de l'interface web de CineBrain (`3000` par défaut) |
+| `QBIT_USER`, `QBIT_PASS` | Identifiant et mot de passe de qBittorrent, **appliqués automatiquement** (6 caractères minimum) |
+| `OLLAMA_MODEL` | Modèle d'IA utilisé, **téléchargé automatiquement** au premier démarrage (`llama3.1` par défaut) |
+| `PROWLARR_API_KEY` | Clé API de Prowlarr, à renseigner après sa configuration (étape 4) |
+| `JELLYFIN_HOST`, `JELLYFIN_USER` | Adresse IP du serveur Jellyfin et utilisateur SSH utilisé pour le transfert |
+| `DIR_JELLYFIN` | Dossier des bibliothèques sur le serveur Jellyfin (ex. `/mnt/contenu`) |
 
-link
-
-Contenu du `docker-compose.yml`:
-
-link
-
-Démarrer la stack sur le serveur IA :
+### Démarrer la stack
 
 ```bash
+docker compose up -d
+```
+
+Au premier démarrage, Ollama télécharge le modèle d'IA (environ 5 Go pour `llama3.1`). Vous pouvez suivre sa progression avec :
+
+```bash
+docker compose logs -f ollama
+```
+
+### Mettre à jour CineBrain
+
+```bash
+docker compose pull
 docker compose up -d
 ```
 
@@ -263,23 +299,29 @@ Le script applique des règles strictes lors de la livraison :
 
 ## 4. Configuration Prowlarr
 
-### Connexion et settings
+### Connexion et clé API
 
 Accéder à Prowlarr via http://IP_SERVEUR_IA:9696 pour configurer la recherche automatisée :
 
-1. Lorsqu'on arrive sur l'interface de Prowlarr, on va créer l'utilisateur commun.
+1. Lorsqu'on arrive sur l'interface de Prowlarr, on crée l'utilisateur commun.
 
 ![Création du user](./pictures/10.auth-prowlarr.png)
 
-2. Une fois connecté, on se rendre dans **settings** -> **General** pour copier la clé api
+2. Une fois connecté, se rendre dans **Settings** → **General** pour copier la **clé API**.
 
-![Création du user](./pictures/11.api-key.png)
+![Clé API de Prowlarr](./pictures/11.api-key.png)
+
+3. Coller cette clé dans `PROWLARR_API_KEY` du `.env`, puis relancer la stack pour que le backend la prenne en compte :
+
+```bash
+docker compose up -d
+```
 
 ### Ajouter des indexers de recherche
 
 1. Dans **Settings** → **Indexers**, ajouter les catégories de recherche (Films & Séries).
 
-![Création du user](./pictures/12.add-indexers.png)
+![Ajout des catégories](./pictures/12.add-indexers.png)
 
 2. Dans **Indexers** → **Add Indexer**, ajouter **uniquement des sources légales** :
   - Par exemple **Internet Archive**, qui propose des films du domaine public et des œuvres sous licence libre.
@@ -287,37 +329,15 @@ Accéder à Prowlarr via http://IP_SERVEUR_IA:9696 pour configurer la recherche 
 
 ![Ajout d'un indexer](./pictures/13.add.website.png)
 
-## 5. Configuration qBittorrent
+## 5. qBittorrent
 
-### Connexion
+**Aucune configuration nécessaire.** L'identifiant et le mot de passe de l'interface sont ceux de `QBIT_USER` et `QBIT_PASS` dans votre `.env` : ils sont appliqués à chaque démarrage du conteneur, et le backend y accède automatiquement.
 
-Accéder à qBittorrent via http://IP_SERVEUR_IA:8080 :
+Pour consulter vos téléchargements directement dans qBittorrent, rendez-vous sur http://IP_SERVEUR_IA:8080 :
 
-Pour trouver le mot de passe de l'interface, il va falloir faire la commande suivant:
+![Connexion à qBittorrent](./pictures/14.auth-qbit.png)
 
-```bash
-docker compose logs qbittorrent
-```
-
-Résultat attendu:
-
-```bash
-******** Information ********
-To control qBittorrent, access the WebUI at: http://localhost:8080
-The WebUI administrator username is: admin
-The WebUI administrator password was not set. A temporary password is provided for this session: gznZVC6tb
-You should set your own password in program preferences.
-Connection to localhost (::1) 8080 port [tcp/http-alt] succeeded!
-[ls.io-init] done.
-```
-
-Prendre le mot de passe généré temprairement.
-
-![Création du user](./pictures/14.auth-qbit.png)
-
-2. Une fois connecté, on va se rendre dans **settings** -> **WebUI** pour modifier le **mot de passe** avec celui dans votre `.env`, cocher **Bypass authentification for client on localhost** et cliquer sur **save**
-
-![Création du user](./pictures/15.setting-qbit.png)
+Pour changer le mot de passe, modifiez `QBIT_PASS` dans le `.env` puis relancez `docker compose up -d`.
 
 ## 6. Ajouter et profiter de vos médias
 
@@ -333,7 +353,7 @@ Cliquez sur **Ajouter**, renseignez le type de contenu, le titre, l'année (facu
 
 ![Ajout d'un film à la liste](./pictures/17.add-movie.png)
 
-Le titre apparaît alors dans **Ma liste**. Les onglets **Tous / Films / Séries** et la barre de recherche permettent de filtrer la liste. Pour retirer un élément, survolez son affiche et cliquez sur l'icône de corbeille.
+Le titre apparaît alors dans **Ma liste**. Les onglets **Tous / Films / Séries** et la barre de recherche permettent de filtrer la liste. Pour retirer un élément, survolez son affiche (ou touchez-la sur mobile) et cliquez sur l'icône de corbeille.
 
 ![Film ajouté à la liste](./pictures/18.wishlist.png)
 

@@ -6,5 +6,5 @@ services:
     volumes:
       - /opt/jellyfin/config:/config
       - /opt/jellyfin/cache:/cache
-      - /mnt/films:/data/movies
+      - /mnt/contenu:/data/movies
     restart: unless-stopped
