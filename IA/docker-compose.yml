@@ -1,10 +1,9 @@
 services:
   vpn:
-    container_name: jarvis_vpn
+    container_name: cinebrain_vpn
     image: qmcgaw/gluetun:latest
     cap_add:
       - NET_ADMIN
-    # Ollama (11434) et l'API du backend (8002) restent internes : l'interface web y accède via le réseau Docker
     ports:
       - 8080:8080/tcp # Accès qBittorrent
       - 9696:9696/tcp # Accès Prowlarr
@@ -17,7 +16,7 @@ services:
       - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
       - SERVER_CITIES=${SERVER_CITIES}
       - TZ=${TZ:-Europe/Brussels}
-      - FIREWALL_OUTBOUND_SUBNETS=${LAN_SUBNET} # Réseau local autorisé hors VPN (accès SSH au serveur Jellyfin)
+      - FIREWALL_OUTBOUND_SUBNETS=${LAN_SUBNET}
       - DOT=on
       - BLOCK_MALICIOUS=off
       - DNS_KEEP_NAMESERVER=on
@@ -27,7 +26,7 @@ services:
       - /dev/net/tun:/dev/net/tun
 
   prowlarr:
-    container_name: jarvis_prowlarr
+    container_name: cinebrain_prowlarr
     image: lscr.io/linuxserver/prowlarr:latest
     restart: unless-stopped
     network_mode: "service:vpn"
@@ -41,8 +40,8 @@ services:
       - vpn
 
   torrent:
-    container_name: jarvis_torrent
-    image: fubooki/jarvis_tor:qbittorrent
+    container_name: cinebrainrent
+    image: fubooki/cinebrain:qbittorrent
     restart: unless-stopped
     network_mode: "service:vpn"
     environment:
@@ -59,14 +58,14 @@ services:
       - vpn
 
   ollama:
-    container_name: jarvis_ollama
-    image: fubooki/jarvis_tor:ollama
+    container_name: cinebrain_ollama
+    image: fubooki/cinebrain:ollama
     restart: unless-stopped
     network_mode: "service:vpn"
     volumes:
       - ./config/ollama_data:/root/.ollama
     environment:
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1}
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
     deploy:
       resources:
         reservations:
@@ -76,13 +75,13 @@ services:
               capabilities: [gpu]
 
   backend:
-    container_name: jarvis_backend
-    image: fubooki/jarvis_tor:backend
+    container_name: cinebrain_backend
+    image: fubooki/cinebrain:backend
     restart: unless-stopped
     network_mode: "service:vpn"
     environment:
       - OLLAMA_HOST=http://localhost:11434
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1}
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
       - PROWLARR_HOST=http://localhost:9696
       - PROWLARR_API_KEY=${PROWLARR_API_KEY}
       - QBIT_HOST=${QBIT_HOST}
@@ -104,10 +103,10 @@ services:
       - ollama
 
   frontend:
-    container_name: jarvis_frontend
-    image: fubooki/jarvis_tor:frontend
+    container_name: cinebrain_frontend
+    image: fubooki/cinebrain:frontend
     ports:
-      - "${Frontend_Port}:3000" # nginx écoute sur 3000 dans le conteneur
+      - "${Frontend_Port}:3000"
     restart: unless-stopped
     depends_on:
       - backend
